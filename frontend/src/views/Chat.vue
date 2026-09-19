@@ -70,9 +70,10 @@
             {{ msg.role === 'user' ? userName.charAt(0) : '🤖' }}
           </div>
           <div class="message-content" :class="{ 'user': msg.role === 'user', 'ai': msg.role === 'ai' }">
-            <template v-if="msg.role === 'ai'">
+              <template v-if="msg.role === 'ai'">
+              <div v-if="msg.status" class="ai-status">{{ msg.status }}</div>
               <div v-if="msg.content" class="markdown-body" v-html="msg.streaming ? escapeHtml(msg.content) : renderMarkdown(msg.content)"></div>
-              <div v-if="msg.chartOption" class="chart-container" :id="'chart-' + (msg._id || index)"></div>
+              <div v-if="msg.chartOption" class="chart-container" :id="'chart-' + (msg._id || index)" :ref="(el) => bindChartEl(msg, el)"></div>
             </template>
             <div v-else>{{ msg.content }}</div>
           </div>
@@ -559,14 +560,20 @@ function sendMessage() {
       { method: 'POST', isFormData: true, body: formData },
       (data) => {
         const aiMsg = messages.value.find(m => m._id === aiMsgId)
-        if (data.content && aiMsg) { aiMsg.content += data.content; scrollToBottom() }
-        if (data.done) { 
+        // 【新增】工具中间步骤：只更新状态提示，不混入正文
+        if (aiMsg && data.type === 'tool' && data.content) {
+          aiMsg.status = data.content
+          scrollToBottom()
+          return
+        }
+        if (data.content && aiMsg && data.type !== 'tool') { aiMsg.content += data.content; scrollToBottom() }
+        if (data.done) {
           isTyping.value = false; stopTypingAnimation();
           currentController = null;
           if (data.session_id) currentSessionId.value = data.session_id;
-          // 流结束：关闭streaming标记，触发完整markdown渲染
           if (aiMsg) {
             aiMsg.streaming = false
+            aiMsg.status = ''
           }
           loadSessions();
         }
@@ -754,6 +761,7 @@ function handleLogout() {
 .markdown-body { color: #333; line-height: 1.7; font-size: 14px; }
 
 .chart-container { width: 100%; min-width: 520px; min-height: 400px; height: 450px; background: #fff; border-radius: 12px; margin-top: 12px; }
+.ai-status { color: #667eea; font-size: 13px; margin-bottom: 8px; font-weight: 500; }
 /* 打字动画 */
 .typing { display: flex; align-items: center; gap: 10px; padding: 14px 18px; }
 .typing-text { font-size: 14px; color: #999; }

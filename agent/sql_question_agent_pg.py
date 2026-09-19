@@ -76,14 +76,24 @@ class SqlQuestionAgentAg:
         return self.agent
 
     async def answer(self, question, user_id):
-        rs = self.agent.astream(
+        """流式输出：
+        - {"type": "tool",   "content": "…"}  中间步骤（工具调用）
+        - {"type": "answer", "content": "…"}  最终回答文本片段
+        """
+        async for event in self.agent.astream_events(
             {"messages": [{"role": "user", "content": question}]},
             {"configurable": {"thread_id": user_id}},
-            stream_mode="messages"
-        )
-        async for c, m in rs:
-            if not hasattr(c, "tool_call_id"):
-                yield c.content
+            version="v2",
+        ):
+            kind = event["event"]
+            if kind == "on_tool_start":
+                yield {"type": "tool", "content": "🔧 正在查询数据库…"}
+            elif kind == "on_tool_end":
+                yield {"type": "tool", "content": "✅ 查询完成，正在整理结果…"}
+            elif kind == "on_chat_model_stream":
+                chunk = event["data"]["chunk"]
+                if getattr(chunk, "content", None) and not getattr(chunk, "tool_call_chunks", None):
+                    yield {"type": "answer", "content": chunk.content}
 
 
 if __name__ == "__main__":

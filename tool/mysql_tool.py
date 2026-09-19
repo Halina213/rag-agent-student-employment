@@ -50,6 +50,7 @@ def mysql_tool(sql: str) -> str:
             read_timeout=15,
         )
 
+        cursor = con.cursor()
         logger.info(f"[Text-to-SQL] 执行: {sql}")
         cursor.execute(sql)
         rows = cursor.fetchall()

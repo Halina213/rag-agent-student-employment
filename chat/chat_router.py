@@ -318,20 +318,20 @@ async def chat(request: Request, question: str = Form(...), user_id: str = Form(
         try:
             method = getattr(current_use_agent, "answer", getattr(current_use_agent, "stream", None))
             async for chunk in method(personalized_question, user_id):
-                chunk = strip_markdown_codeblock(chunk)
-                full_response.append(chunk)
-                msg = {"content": chunk, "done": False}
+                # chunk 现在是 dict：{"type": "tool/answer", "content": "..."}
+                msg = {"type": chunk["type"], "content": chunk["content"], "done": False}
+                if chunk["type"] == "answer":
+                    full_response.append(chunk["content"])
                 yield f"data:{json.dumps(msg, ensure_ascii=False)}\n\n"
-            
-            # 保存完整AI回复
+
             complete_response = "".join(full_response)
             save_message(user_id, sid, "ai", complete_response)
-            
-            msg = {"content": "", "done": True, "session_id": sid}
+
+            msg = {"type": "answer", "content": "", "done": True, "session_id": sid}
             yield f"data:{json.dumps(msg, ensure_ascii=False)}\n\n"
         except Exception as e:
             logger.warn(f"错误信息：{str(e)}")
-            msg = {"content": "出错了", "done": True, "error": True}
+            msg = {"type": "answer", "content": "出错了", "done": True, "error": True}
             yield f"data:{json.dumps(msg, ensure_ascii=False)}\n\n"
 
     return StreamingResponse(content=generator(), media_type="text/event-stream")
