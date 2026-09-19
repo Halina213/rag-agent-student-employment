@@ -8,6 +8,7 @@ from fastapi.responses import StreamingResponse, PlainTextResponse
 import pymysql
 import os
 from dotenv import load_dotenv
+from agent.intent_router import classify_intent
 
 load_dotenv()
 logger = Logger.get_logger(__name__)
@@ -268,8 +269,11 @@ async def chat(request: Request, question: str = Form(...), user_id: str = Form(
     # 保存用户消息
     save_message(user_id, sid, "user", question)
     
+    # 意图路由：让大模型判断该走哪个智能体
+    intent = classify_intent(question)
+
     # 图表智能体
-    if any(kw in q for kw in ECHAT_KEYWORDS):
+    if intent == "chart":
         echarts_agent = request.app.state.echarts_agent
         # 注入用户上下文
         personalized_question = f"{user_context}\n{detail_instruction}\n用户问题：{question}" if user_context else question
@@ -286,7 +290,7 @@ async def chat(request: Request, question: str = Form(...), user_id: str = Form(
         return PlainTextResponse(content=extracted, media_type="application/json")
     
     # 数据分析智能体
-    elif any(kw in q for kw in ANLYZE_KEYWORDS):
+    elif intent == "analysis":
         anlyze_agent = request.app.state.anlyze_agent
         personalized_question = f"{user_context}\n{detail_instruction}\n用户问题：{question}" if user_context else question
         result = anlyze_agent.answer(personalized_question, user_id)

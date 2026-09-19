@@ -753,8 +753,7 @@ function handleLogout() {
 
 .markdown-body { color: #333; line-height: 1.7; font-size: 14px; }
 
-.chart-container { width: 100%; min-height: 400px; height: 450px; background: #fff; border-radius: 12px; margin-top: 12px; }
-
+.chart-container { width: 100%; min-width: 520px; min-height: 400px; height: 450px; background: #fff; border-radius: 12px; margin-top: 12px; }
 /* 打字动画 */
 .typing { display: flex; align-items: center; gap: 10px; padding: 14px 18px; }
 .typing-text { font-size: 14px; color: #999; }
