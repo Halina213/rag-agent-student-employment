@@ -27,3 +27,7 @@ static/upload/*
 # OS
 .DS_Store
 Thumbs.db
+
+# 数据集文件（较大，不入库；需要时自行放入 data/ 目录）
+data/*.csv
+!data/sample_student_placement.csv
