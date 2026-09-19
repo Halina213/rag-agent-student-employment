@@ -1,0 +1,11 @@
+College_ID,IQ,Prev_Sem_Result,CGPA,Academic_Performance,Internship_Experience,Extra_Curricular_Score,Communication_Skills,Projects_Completed,Placement
+CLG0001,118,8.5,8.7,9,Yes,8,9,4,Yes
+CLG0001,104,7.2,7.4,7,No,6,7,2,No
+CLG0002,126,9.1,9.3,10,Yes,9,9,5,Yes
+CLG0002,98,6.8,6.9,6,No,5,6,1,No
+CLG0003,112,8.0,8.1,8,Yes,7,8,3,Yes
+CLG0003,101,7.0,7.2,7,No,6,6,2,No
+CLG0004,120,8.8,8.9,9,Yes,8,8,4,Yes
+CLG0004,109,7.8,7.9,8,Yes,7,7,3,Yes
+CLG0005,95,6.5,6.7,6,No,4,5,1,No
+CLG0005,115,8.3,8.5,8,Yes,8,8,4,Yes

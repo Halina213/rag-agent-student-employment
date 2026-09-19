@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+
+# Node / Vite
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Local config and secrets
+.env
+*.local
+
+# IDE
+.idea/
+.vscode/
+
+# Runtime files
+logs/*.log
+static/upload/*
+!static/upload/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db
