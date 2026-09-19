@@ -42,7 +42,7 @@ rag-agent-student-employment/
 ├── init_db.py             # 初始化数据库
 ├── import_data.py         # 导入示例数据
 ├── main.py                # 后端入口
-└── requirement.txt        # 后端依赖
+└── requirements.txt       # 后端依赖
 ```
 
 ## 环境准备

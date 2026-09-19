@@ -504,88 +504,49 @@ function sendMessage() {
   formData.append('user_id', userInfo?.email || 'anonymous')
   if (currentSessionId.value) formData.append('session_id', currentSessionId.value)
   
-  const CHART_KEYWORDS = ['图表', '图', '画', '可视化', '柱状图', '饼图', '折线图', '散点图', '雷达图', 'echart', 'chart', '生成图', '绘图']
-  const ANALYZE_KEYWORDS = ['数据分析', '分析', '统计', '报告', '总结', '趋势']
-  const isChartRequest = CHART_KEYWORDS.some(kw => questionText.toLowerCase().includes(kw))
-  const isAnalyzeRequest = ANALYZE_KEYWORDS.some(kw => questionText.toLowerCase().includes(kw))
-  
-  if (isChartRequest || isAnalyzeRequest) {
-    const aiMsgId = makeMsgId()
-    messages.value.push({ role: 'ai', content: isChartRequest ? '🎨 正在为你绘制图表...' : '🔍 正在深入分析数据...', _id: aiMsgId, chartOption: null })
-    
-    fetch('/api/chat', { method: 'POST', body: formData })
-    .then(res => res.text())
-    .then(text => {
-      const chartOption = tryParseChartOption(text)
-      const analysisContent = tryParseAnalysisContent(text)
-      
+  const aiMsgId = makeMsgId()
+  messages.value.push({ role: 'ai', content: '', _id: aiMsgId, streaming: true })
+
+  currentController = fetchSSE(
+    '/api/chat',
+    { method: 'POST', isFormData: true, body: formData },
+    (data) => {
       const aiMsg = messages.value.find(m => m._id === aiMsgId)
-      if (!aiMsg) return
-      
-      // 判断是否有有效的分析内容（不是原始JSON）
-      const hasAnalysis = analysisContent && analysisContent.trim().length > 0
-      
-      if (chartOption && hasAnalysis) {
-        aiMsg.content = analysisContent
-        aiMsg.chartOption = chartOption
-      } else if (chartOption) {
-        aiMsg.content = ''  // 纯图表请求，不显示JSON文本
-        aiMsg.chartOption = chartOption
-      } else if (hasAnalysis) {
-        aiMsg.content = analysisContent
-      } else {
-        aiMsg.content = text
+      // 工具中间步骤：只更新状态提示
+      if (aiMsg && data.type === 'tool' && data.content) {
+        aiMsg.status = data.content
+        scrollToBottom()
+        return
       }
-      isTyping.value = false
-      stopTypingAnimation()
-      scrollToBottom()
-      // 手动渲染图表（不用ref，避免Vue重渲染丢失）
-      if (chartOption) {
-        nextTick(() => { renderChart(aiMsgId, chartOption); rerenderAllCharts() })
+      if (data.content && aiMsg && data.type !== 'tool') { aiMsg.content += data.content; scrollToBottom() }
+      if (data.done) {
+        isTyping.value = false; stopTypingAnimation();
+        currentController = null;
+        if (data.session_id) currentSessionId.value = data.session_id;
+        if (aiMsg) {
+          // 流结束后统一解析：图表 / 分析 / 普通文本
+          const fullText = aiMsg.content
+          const chartOption = tryParseChartOption(fullText)
+          const analysisContent = tryParseAnalysisContent(fullText)
+          if (chartOption && analysisContent) { aiMsg.content = analysisContent; aiMsg.chartOption = chartOption }
+          else if (chartOption) { aiMsg.content = ''; aiMsg.chartOption = chartOption }
+          else if (analysisContent) { aiMsg.content = analysisContent }
+          aiMsg.streaming = false
+          aiMsg.status = ''
+          if (aiMsg.chartOption) {
+            nextTick(() => { renderChart(aiMsgId, aiMsg.chartOption); rerenderAllCharts() })
+          }
+        }
+        loadSessions();
       }
-      loadSessions()
-    })
-    .catch(err => {
+    },
+    (error) => {
+      isTyping.value = false; stopTypingAnimation()
       const aiMsg = messages.value.find(m => m._id === aiMsgId)
       if (aiMsg) aiMsg.content = '呜...出了点小问题，再试一次吧 🥺'
-      isTyping.value = false
-      stopTypingAnimation()
-    })
-  } else {
-    const aiMsgId = makeMsgId()
-    messages.value.push({ role: 'ai', content: '', _id: aiMsgId, streaming: true })
-    
-    currentController = fetchSSE(
-      '/api/chat',
-      { method: 'POST', isFormData: true, body: formData },
-      (data) => {
-        const aiMsg = messages.value.find(m => m._id === aiMsgId)
-        // 【新增】工具中间步骤：只更新状态提示，不混入正文
-        if (aiMsg && data.type === 'tool' && data.content) {
-          aiMsg.status = data.content
-          scrollToBottom()
-          return
-        }
-        if (data.content && aiMsg && data.type !== 'tool') { aiMsg.content += data.content; scrollToBottom() }
-        if (data.done) {
-          isTyping.value = false; stopTypingAnimation();
-          currentController = null;
-          if (data.session_id) currentSessionId.value = data.session_id;
-          if (aiMsg) {
-            aiMsg.streaming = false
-            aiMsg.status = ''
-          }
-          loadSessions();
-        }
-      },
-      (error) => {
-        isTyping.value = false; stopTypingAnimation()
-        const aiMsg = messages.value.find(m => m._id === aiMsgId)
-        if (aiMsg) aiMsg.content = '呜...出了点小问题，再试一次吧 🥺'
-        currentController = null
-      }
-    )
-  }
+      currentController = null
+    }
+  )
 }
 
 function triggerUpload() { if (fileInputRef.value) fileInputRef.value.click() }

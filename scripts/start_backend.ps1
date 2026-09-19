@@ -4,5 +4,5 @@ if (!(Test-Path ".env")) {
   Write-Host "已生成 .env，请先填写 OPENAI_API_KEY、MySQL、邮箱等配置后再启动。" -ForegroundColor Yellow
   exit 1
 }
-python -m pip install -r requirement.txt
+python -m pip install -r requirements.txt
 python main.py
